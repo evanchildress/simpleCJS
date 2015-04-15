@@ -1,0 +1,17 @@
+{
+    "contents" : "makeData()\nbugsName<-\"simpleCJS.txt\"\n# function to make initial z matrix, with 1s when known alive and NAs otherwise\nencInit<-function(sN, first, last){#, river){\n  z.iv <- array(NA, dim=length(first))\n  z.iv[(sN>first)&(sN<=(last))] <- NA\n  return(z.iv)\n}\n\n\nemPermInit <- function(e){\n  eOut <- array(NA, dim=length(e))\n  eOut <- ifelse( is.na(e), 0, e )\n  return(eOut)\n}\n\nencInitMS<-function(sN, first, last, river){\n  for (i in 1:(length(first))){\n    river[i] <- river[i] - 0\n    if ((sN[i] >= first[i]) & (sN[i] <= (last[i]))) {\n      if( is.na(river[i]) ) river[i] <- river[i-1]  \n    }\n    else river[i] <- NA\n  }  \n  return(river + 1)\n}\n\ninits<- function(){\n  list(phiBeta = rep(0.5,d$nYears),\n       pBeta = rep(0.5,d$nYears),\n       z = as.numeric(encInit(data$year,data$first,data$last))\n  )      \n}\n\n\n\n# MCMC settings\nna <- 500\nnb <- 2000\nni <- 5000\nnt <- 5\nnc <- 3\n\nvarsToMonitor<-c(\n  'pBeta'\n  ,'phiBeta'\n  ,'deviance'\n)\n\n# out <- bugs(\n#   data=d,\n#   inits=inits,\n#   model = \"simpleCJS.txt\",\n#   parameters.to.save = varsToMonitor,\n#   n.chains=nc,\n#   n.iter = ni,\n#   n.thin = nt,\n#   n.burnin=nb,\n#   debug=T)\n\n\n\n# (beforeAdapt <- Sys.time())\n# print( beforeAdapt )\nadaptedModel<- jags.model(\n  file = bugsName,  \n  data = d,\n  inits = inits,\n  n.chains = nc,\n  n.adapt = na,             \n)\n# (afterAdapt <- Sys.time())\n# afterAdapt - beforeAdapt\n\n# out1=out  ## for running a second set of iters\n\n# ( beforeJags <- Sys.time() )\n# print( beforeJags )\nout <- jags.samples(\n  model = adaptedModel,\n  variable.names = varsToMonitor,\n  n.iter = ni,\n  thin = nt,\n  progress.bar = 'text'\n) ",
+    "created" : 1428591407798.000,
+    "dirty" : true,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "1484014750",
+    "id" : "E0A6DE44",
+    "lastKnownWriteTime" : 3539883321429340448,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled4"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

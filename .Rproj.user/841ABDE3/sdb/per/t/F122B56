@@ -1,0 +1,16 @@
+{
+    "contents" : "require(data.table)\nsimNum <- 1\nrDataName <- 'dMDataOutbkt2002_2014.RData'\ndataStore<-getwd()\n\n##########\ncomment<-paste(\" model\",simNum, \" MS Sim \"  )\n\nhome <- getwd()\n\nsetwd( home )\ndirectory <- tempfile( pattern=\"output-\", tmpdir ='.', fileext='-simpleCJS')\ndir.create(directory)\n\nbugsName <- paste0('./simpleCJS','.txt')\n\nfile.copy(from='./callSimpleCJS.R', to=paste(directory,'callSimpleCJS.R',sep='/'))\nfile.copy(from=bugsName , to=paste(directory,bugsName ,sep='/'))\n#file.copy(from='./analyzeSimpleCJS.R', to=paste(directory,'analyzeSimpleCJS.R',sep='/'))\nfile.copy(from='./run.R', to=paste(directory,'run.R',sep='/'))\n##################\n#file.copy(from=paste(rDataName,sep=''), to=paste(directory,rDataName,sep='/'))\n##################\n\nfileOutName <- \"outMSRiver.RData\" \n\n#load(paste(home,'/',rDataName,simNum,'.RData',sep=''))\n\n####################\nload(file.path(dataStore,rDataName))\n#load('/home/ben/allSpp/fdDATA.RData')\n####################\n#print(parms)\n\nwriteLines(text = '')\ncat(\"Working directory for this run is: \", directory, \"\\n\", sep = '')\ncat(\"Output filename for this run is: \", fileOutName, \"\\n\", sep = '')\ncat(\"Comment: '\", comment, \"\\n\", sep = '')\nwriteLines(text = '')\n\nsource('./callSimpleCJS.R')\n\n#writeLines(text=paste(date(),directory,afterAdapt - beforeAdapt,done - beforeJags), con='../latest_directory')\nwriteLines(text=paste(date(),directory,afterAdapt - beforeAdapt,done - beforeJags,\"[\", comment,\"]\"), con='./info.txt')\ngetwd()\n\nsave(d, out, file = fileOutName)\n\n################################################################\n",
+    "created" : 1428674143752.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1039820907",
+    "id" : "F122B56",
+    "lastKnownWriteTime" : 1428674388,
+    "path" : "~/simpleCJS/runOsensei.R",
+    "project_path" : "runOsensei.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

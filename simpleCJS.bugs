@@ -1,0 +1,165 @@
+
+model{
+  
+  ############ standardized size for sizeBetas
+  #   for( i in 1:(nEvalRows) ){ 
+  #     stdLength[ evalRows[i] ] <-  ( length[ evalRows[i] ] - lengthMean[ season[ evalRows[i]],zRiv[ evalRows[i] ] ] ) / 
+  #       lengthSd[ season[ evalRows[i]],zRiv[ evalRows[i] ] ]
+  #   }
+  #   
+  #   for(i in 1:( nLastRows ) ){  
+  #     stdLength[ lastRows[i] ] <-  ( length[ lastRows[i] ] - lengthMean[ season[ lastRows[i]],zRiv[ evalRows[i] ] ] ) / 
+  #       lengthSd[ season[ lastRows[i]],zRiv[ evalRows[i] ] ]
+  #   }
+  #   
+  #   for( i in 1:nFirstObsRows ){
+  #     length[ firstObsRows[i] ] ~ dnorm( 80,0.001 )   
+  #     lengthDATA[ firstObsRows[i] ] ~ dnorm( length[ firstObsRows[i] ],9 )
+  #   }
+  #   
+  #   ############ Move parameter
+  #   for( i in 1:nEvalRows ){
+  #     # move = 1 for move and 0 for not move. used as offset variable  
+  #     move[ evalRows[i] ] <- 1 - equals( riverDATA[ evalRows[i] ], riverDATA[ evalRows[i]+1 ] ) 
+  #   }
+  #   
+  #   ############## Growth Model
+  #   
+  #   for( i in 1:nEvalRows ){
+  #     
+  #     length[ evalRows[i]+1 ] <- length[ evalRows[i] ] + gr[ evalRows[i] ]
+  #     
+  #     lengthDATA[ evalRows[i] + 1 ] ~ dnorm( length[ evalRows[i] + 1 ],9 )
+  #     
+  #     gr[ evalRows[i] ] ~ dnorm( expectedGR[ evalRows[ i ] ] ,1/grSigma[ season[ evalRows[i] ],year[ evalRows[i] ],zRiv[ evalRows[ i ] ] ]^2 ) 
+  #     
+  #     expectedGR[ evalRows[ i ] ] <- grBeta[ season[ evalRows[i] ],year[ evalRows[i] ],zRiv[ evalRows[ i ] ] ] 
+  #     
+  #   }
+  #   
+  #   ############## Growth Priors  
+  #   for(y in 1:nYears){
+  #     for( r in 1:(nRivers+1) ){
+  #       
+  #       grBeta[ 1,y,r ] ~ dnorm( 25, 0.01 )
+  #       grBeta[ 2,y,r ] ~ dnorm( 10, 0.01 )
+  #       grBeta[ 3,y,r ] ~ dnorm( 8, 0.01 )
+  #       grBeta[ 4,y,r ] ~ dnorm( 4, 0.01 )        
+  #       
+  #       for( s in 1:4 ){
+  #         
+  #         grSigma[ s,y,r ] ~ dgamma( 2,1/20 ) 
+  #         
+  #       }
+  #     }  
+  #   }    
+  #   
+  
+  ############## Recapture model
+  for(i in 1:nEvalRows){
+    logit( p[ evalRows[i]+1 ] ) <- pBeta[ season[ evalRows[i]+1 ],year[ evalRows[i]+1 ],zRiv[ evalRows[ i ]+1 ] ]                                    
+  }
+  
+  ############## Recapture priors
+  
+  for( s in 1:4 ){    
+    for(y in 1:nYears){  
+      for( r in 1:(nRivers+1) ){
+        
+        pBeta[ s,y,r ] ~ dnorm( 0,0.667 )
+        
+      }
+    }
+  }
+  
+  ############## Survival model
+  for(i in 1:nEvalRows){
+    logit( phi[ evalRows[i] ] ) <- phiBeta[ season[ evalRows[i] ],year[ evalRows[i] ],zRiv[ evalRows[ i ] ] ]
+    
+  }
+  
+  
+  ############## survival priors
+  for( s in 1:4 ){    
+    for(y in 1:nYears){  
+      for( r in 1:(nRivers+1) ){  
+        
+        phiBeta[ s,y,r ] ~ dnorm( 0,0.667 )
+        # phiBeta[ i,s,r ] ~ dt( 0,1,1 )
+        
+      }
+    }
+  }
+  
+  ############## Psi model
+  for( i in 1:nEvalRows ){
+    sumPsi[evalRows[i]]<-sum(ePsi[evalRows[i],])
+    
+    for( r2 in 1:nRivers ){
+      # normal priors on logit
+      lpsi[evalRows[i],r2] <- psiBeta[season[evalRows[i]],riverDATA[evalRows[i]],r2]     
+      
+      ePsi[evalRows[i],r2]<-exp(lpsi[evalRows[i],r2])*(1-(riverDATA[evalRows[i]]==r2))
+      
+      #Constrain each set of psi's to sum to one
+      psi[evalRows[i],r2]<-( ePsi[evalRows[i],r2] / (1+sumPsi[evalRows[i]]) ) * ( 1-(riverDATA[evalRows[i]]==r2) )
+      + ( 1 / (1+sumPsi[evalRows[i]]) )  *    (riverDATA[evalRows[i]]==r2)
+    }
+  }
+  ############## Psi Priors
+  for( s in 1:4 ) {
+    for(r in 1:(nRivers)){
+      for(r2 in 1:(nRivers)){
+        
+        psiBeta[s,r,r2]~dnorm(0,1/2.25)
+        #psiSizeBetas[r,r2]~dnorm(0,1/2.25)
+        
+      }
+    }
+  }
+  # constrain entering river 4 OBear to be very small
+  #  for(r in 1:(nRivers-1)){
+  #    psiBeta[r,4]~dunif(0,0.001) #dnorm(0,1/500) # may need better prior here
+  #  }
+  #  psiBeta[4,4]~dnorm(0,1/2.25)
+  
+  ############## Likelihood
+  # Initial conditions:
+  # 1) individuals enter the sample with probability 1
+  # 2) individuals enter the sample alive, with probability 1
+  for(i in 1:nFirstObsRows){
+    z[ firstObsRows[i] ] <- 1
+    zRiv[ firstObsRows[i] ] <- riverDATA[ firstObsRows[i] ] + 1
+  }
+  
+  for(i in 1:nEvalRows){
+    # State of survival
+    z[ evalRows[i]+1 ] ~ dbern( survProb[ evalRows[i] ] ) #Do or don't suvive to i
+    survProb[evalRows[i]] <-         phi[ evalRows[i] ] #^ ( intervalDays[ evalRows[i] ] * 4 / 365 ) 
+    * z[ evalRows[i] ] 
+    
+    # State of location
+    riverDATA[ evalRows[i]+1 ] ~ dcat( psi[ evalRows[i], ] )
+    
+    zRiv[evalRows[i]+1] <- riverDATA[ evalRows[i]+1 ]  
+    * z[ evalRows[i]+1 ]  
+    + 1
+    
+    # Observation of live encounters
+    encDATA[ evalRows[i]+1 ] ~ dbern( obsProb[ evalRows[i]+1 ] )
+    
+    obsProb[ evalRows[i]+1 ]<-        p[ evalRows[i]+1 ]                 # Capture probability (calculated above).
+    * z[ evalRows[i]+1 ]                 # Must be alive to be capturable.      
+    * availableDATA[ evalRows[i]+1 ]                 # Must be on the study site to be capturable.
+  }
+  
+  ############## For Traces
+  
+  #   
+  #   for( i in 1:( 2000 ) ) {
+  #     zOut[ i ] <- z[ evalRows[ i ] ]
+  #     lengthOut[ i ] <- length[ evalRows[ i ] ]
+  #     zRivOut[ i ] <- zRiv[ evalRows[ i ] ]
+  #   }
+  
+} #model bracket
