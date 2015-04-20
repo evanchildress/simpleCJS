@@ -44,7 +44,5 @@ writeLines(text=paste(date(),directory,afterAdapt - beforeAdapt,done - beforeJag
 getwd()
 
 save(d, out, file = fileOutName)
-save(out,file=file.path(directory,fileOutName)
-     
-     ################################################################
+save(out,file=file.path(directory,fileOutName))
      

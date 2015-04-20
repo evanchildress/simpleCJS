@@ -291,8 +291,6 @@ varsToMonitor<-c(
   
   , 'phiBeta'
   
-  , 'deviance'
-  
   #  , 'grSigma' 
   #  , 'grBeta'
   

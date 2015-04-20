@@ -10,7 +10,7 @@ cat("
     
     for( s in 1:4 ){    
     for(y in 1:nYears){  
-    for( r in 1:(nRivers+1) ){
+    for( r in 1:(nRivers) ){
     
     pBeta[ s,y,r ] ~ dnorm( 0,0.667 )
     
@@ -29,7 +29,7 @@ cat("
     ############## survival priors
     for( s in 1:4 ){    
     for(y in 1:nYears){  
-    for( r in 1:(nRivers+1) ){  
+    for( r in 1:(nRivers) ){  
     
     phiBeta[ s,y,r ] ~ dnorm( 0,0.667 )
     

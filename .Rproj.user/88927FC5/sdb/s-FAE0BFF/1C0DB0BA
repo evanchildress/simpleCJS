@@ -1,0 +1,16 @@
+{
+    "contents" : "load(\"outMSRiver.RData\")\n\nresult<-data.table(\n  dcast(\n    melt(\n      apply(out$BUGSoutput$sims.list$pBeta,c(2,3,4),FUN=function(x){\n        c(mean(inv.logit(x)),\n          quantile(inv.logit(x),c(0.025,0.975)))})\n    ),\n    Var2+Var3+Var4~Var1\n  )\n)\n\nsetnames(result,c('season','year','river','pMean','pLower','pUpper'))\n\ntiff.par('results/p.tiff',mfrow=c(4,4),oma=c(1,1,0,0))\nfor(r in 1:4){\n  for(s in 1:4){\n    plot(pMean~year,data=result[season==s&river==r],\n         pch=19,ylim=c(0,1),xlab=\"\",ylab='')\n    with(result[season==s&river==r],error.bar(year,pMean,upper.y=pUpper,\n                                              lower.y=pLower,interval.type='absolute'))\n  }}\nmtext(\"Detection Probability\",side=2,line=-0.5,outer=T,las=0)\nmtext(\"Year\",side=1,line=0,outer=T)\ndev.off()\n",
+    "created" : 1429284167177.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1931369699",
+    "id" : "1C0DB0BA",
+    "lastKnownWriteTime" : 1429107671,
+    "path" : "C:/Users/Evan/Desktop/Conte/simpleCJS/results/plotP.R",
+    "project_path" : "results/plotP.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}
