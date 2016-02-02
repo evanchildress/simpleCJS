@@ -1,5 +1,5 @@
 simNum <- 1
-rDataName <- 'dMDataOutbkt2002_2014.RData'
+rDataName <- 'dMDataOutbkt.RData'
 dataStore<-"~/process-data/data_store/processed_data"
 
 ##########

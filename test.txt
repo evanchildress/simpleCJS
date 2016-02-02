@@ -1,0 +1,10 @@
+model{
+  m~dnorm(0,10)
+  b~dnorm(0,10)
+  sd~dunif(0,10)
+  tau<-pow(sd,-2)
+  
+  yhat <- x*m+b
+  for(obsj in 1:N)
+  {  y.obs[obsj] ~ dnorm(yhat[obsj], tau) }
+}

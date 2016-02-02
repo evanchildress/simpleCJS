@@ -1,5 +1,5 @@
 simNum <- 1
-rDataName <- 'dMDataOutbkt2002_2014.RData'
+rDataName <- 'dMDataOutbkt1996_2015.RData'
 dataStore<-getwd()
 
 ##########
@@ -11,7 +11,7 @@ home <- getwd()
 directory <- tempfile( pattern="output-", tmpdir ='.', fileext='-simpleCJS')
 dir.create(directory)
 
-bugsName <- paste0('./simpleCJS','.txt')
+bugsName <- paste0('./model','.txt')
 
 file.copy(from='./callSimpleCJS.R', to=paste(directory,'callSimpleCJS.R',sep='/'))
 file.copy(from=bugsName , to=paste(directory,bugsName ,sep='/'))
