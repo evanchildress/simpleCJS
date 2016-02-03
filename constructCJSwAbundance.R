@@ -3,10 +3,10 @@ cat("
     
     ############## Recapture model
     for(i in 1:nEvalRows){
-      logit( p[ evalRows[i]+1 ] ) <- pBeta[ season[ evalRows[i]+1 ],
-                                          riverDATA[ evalRows[ i ]+1 ],
-                                          stage[ evalRows[ i ]+1 ]] *
-                                     sampleFlow[evalRows[i]+1]
+      logit( p[ evalRows[i] ] ) <- pBeta[ season[ evalRows[i] ],
+                                          riverDATA[ evalRows[ i ] ],
+                                          stageDATA[ evalRows[ i ] ]] *
+                                     sampleFlow[evalRows[i]]
     }
     
     ############## Recapture priors
@@ -23,8 +23,8 @@ cat("
     
     ############## Survival model
     for(i in 1:nEvalRows){
-      logit( phi[ evalRows[i] ] ) <- phiBeta[ season[ evalRows[i] ],year[ evalRows[i] ],
-      riverDATA[ evalRows[ i ] ], stage[evalRows[i]] ]
+      logit( phi[ evalRows[i]-1 ] ) <- phiBeta[ season[ evalRows[i]-1 ],year[ evalRows[i]-1 ],
+      riverDATA[ evalRows[ i ]-1 ], stageDATA[evalRows[i]-1] ]
     }
     
     
@@ -50,13 +50,13 @@ cat("
     
     for(i in 1:nEvalRows){
     # State of survival
-      z[ evalRows[i]+1 ] ~ dbern( survProb[ evalRows[i] ] ) #Do or don't suvive to i
-      survProb[evalRows[i]] <-phi[ evalRows[i] ] * z[ evalRows[i] ] 
+      z[ evalRows[i] ] ~ dbern( survProb[ evalRows[i]-1 ] ) #Do or don't suvive to i
+      survProb[evalRows[i]-1] <-phi[ evalRows[i]-1 ] * z[ evalRows[i]-1 ] 
     
     # Observation of live encounters
-      encDATA[ evalRows[i]+1 ] ~ dbern( obsProb[ evalRows[i]+1 ] )
+      encDATA[ evalRows[i] ] ~ dbern( obsProb[ evalRows[i] ] )
     
-      obsProb[ evalRows[i]+1 ]<-p[ evalRows[i]+1 ] * z[ evalRows[i]+1 ]   #capture probability times logical alive      
+      obsProb[ evalRows[i] ]<-p[ evalRows[i] ] * z[ evalRows[i] ]   #capture probability times logical alive      
     #* availableDATA[ evalRows[i]+1 ]                 # Must be on the study site to be capturable.
     }
     
