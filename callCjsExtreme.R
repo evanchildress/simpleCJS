@@ -10,12 +10,13 @@ fillRiver<-function(river){
   return(river)
 }
 
-coreData<-createCoreData(sampleType="electrofishing",
-                         columnsToAdd=c("sampleNumber","river",
-                                        'observedLength','observedWeight')) %>% 
+coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
   dplyr::filter(species=="bkt") %>%
-  createCmrData(maxAgeInSamples=20) %>%
+  createCmrData(dateStart=as.POSIXct("2008-01-01"),
+                dateEnd=as.POSIXct("2010-01-01"),
+                maxAgeInSamples=20) %>%
+  # createCmrData() %>%
   group_by(tag) %>%
   mutate(river=fillRiver(river)) %>%
   ungroup() %>%
@@ -24,20 +25,43 @@ coreData<-createCoreData(sampleType="electrofishing",
   addKnownZ()
 
 jagsData <- createJagsData(coreData)
+jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
 
-fillRiver<-function(river){
-  known<-which(!is.na(river))
-  unknown<-which(is.na(river))
-  nKnown<-length(unique(river[known]))
-  if(nKnown==1){river[unknown]<-river[known[1]]}else{
-    for(i in unknown){
-      river[i]<-river[known[max(which(i>known))]]
+#create sampleRows
+sampleRows<-coreData %>% mutate(stage=as.numeric(ageInSamples>3)+1) %>%
+             select(sampleIndex,river,stage) %>%
+             mutate(row=as.numeric(rownames(.))) %>%
+             mutate(river=as.numeric(factor(river,levels=c('west brook','wb jimmy','wb mitchell','wb obear'),ordered=T)))
+
+nSampleRows<-sampleRows %>%
+             melt(id.vars=c("sampleIndex","river","stage")) %>%
+             acast(sampleIndex~river~stage,length)
+
+sampleRowArray<-array(NA,dim=c(max(nSampleRows),dim(nSampleRows)))
+for(s in 1:dim(nSampleRows)[1]){
+  for(r in 1:dim(nSampleRows)[2]){
+    for(g in 1:dim(nSampleRows)[3]){
+      if(nSampleRows[s,r,g]>0){
+        sampleRowArray[1:nSampleRows[s,r,g],s,r,g]<-sampleRows %>%
+                                                    filter(sampleIndex==s,river==r,stage==g) %>%
+                                                    select(row) %>%
+                                                    as.matrix()
+      }
     }
   }
-  return(river)
 }
 
-zInit<-jagsData$z
+sampleRowsEval<-sampleRows %>% select(-row) %>% distinct() %>% as.matrix
+nSampleRowsEval<-nrow(sampleRowsEval)
+jagsData<-within(jagsData,
+       {
+         sampleRowArray=sampleRowArray
+         nSampleRows=nSampleRows
+         sampleRowsEval=sampleRowsEval
+         nSampleRowsEval=nSampleRowsEval
+       })
+
+zInit<-jagsData$knownZ
 zInit[is.na(zInit)]<-0
 zInit[jagsData$firstObsRows]<-NA
 zInit[zInit==1]<-NA
@@ -59,9 +83,6 @@ nc <- 3
 
 varsToMonitor<-c('pBeta','phiBeta')
 
-  
-)
-
 gc()
 
 (beforeJags<-Sys.time())
@@ -69,7 +90,7 @@ if(parallel==F){
   out <- jags(
     data=jagsData,
     inits=inits,
-    model = modelFile,
+    model = "model.txt",
     parameters.to.save = varsToMonitor,
     n.chains=nc,
     n.iter = ni,
@@ -78,7 +99,7 @@ if(parallel==F){
 } else {
   coda.samples.wrapper <- function(j)
   { 
-    temp.model = jags.model(modelFile, 
+    temp.model = jags.model("model.txt", 
                             inits=inits, 
                             data=jagsData,
                             n.chains=nc,
