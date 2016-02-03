@@ -4,13 +4,12 @@ require(snow)
 library(getWBData)
 library(R2jags)
 library(lubridate)
+library(reshape2)
 simNum <- 1
 
 source("constructCJSwAbundance.R")
 
-directory <- tempfile( pattern="output-", tmpdir ='.', fileext='-Cjs')
-dir.create(directory)
-fileOutName<-"cjsMcmc.rds"
+
 
 modelFile<-'~/simpleCJS/model.txt'
 ##################
@@ -22,5 +21,8 @@ source('./callCjsExtreme.R')
 #getwd()
 
 #save(d, out, file = fileOutName)
+directory <- tempfile( pattern="output-", tmpdir ='.', fileext='-Cjs')
+dir.create(directory)
+fileOutName<-"cjsMcmc.rds"
 saveRDS(out,file=file.path(directory,fileOutName))
      

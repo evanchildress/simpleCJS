@@ -3,10 +3,13 @@ cat("
     
     ############## Recapture model
     for(i in 1:nEvalRows){
-      logit( p[ evalRows[i] ] ) <- pBeta[ season[ evalRows[i] ],
+      logit( p[ evalRows[i] ] ) <- pBeta[1,season[ evalRows[i] ],
+                                          riverDATA[ evalRows[ i ] ],
+                                          stageDATA[ evalRows[ i ] ]] +
+                                          pBeta[2,season[ evalRows[i] ],
                                           riverDATA[ evalRows[ i ] ],
                                           stageDATA[ evalRows[ i ] ]] *
-                                     sampleFlow[evalRows[i]]
+                                     flowForP[evalRows[i]]
     }
     
     ############## Recapture priors
@@ -44,9 +47,9 @@ cat("
     # Initial conditions:
     # 1) individuals enter the sample with probability 1
     # 2) individuals enter the sample alive, with probability 1
-    for(i in 1:nFirstObsRows){
-      z[ firstObsRows[i] ] <- 1
-    }
+#     for(i in 1:nFirstObsRows){
+#       z[ firstObsRows[i] ] <- 1
+#     }
     
     for(i in 1:nEvalRows){
     # State of survival

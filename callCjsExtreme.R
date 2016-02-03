@@ -13,19 +13,18 @@ fillRiver<-function(river){
 coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
   dplyr::filter(species=="bkt") %>%
-  createCmrData(dateStart=as.POSIXct("2008-01-01"),
-                dateEnd=as.POSIXct("2010-01-01"),
-                maxAgeInSamples=20) %>%
-  # createCmrData() %>%
+  createCmrData() %>%
   group_by(tag) %>%
   mutate(river=fillRiver(river)) %>%
   ungroup() %>%
   addSampleProperties() %>%
-  addEnvironmental() %>%
+  addEnvironmental(sampleFlow=T) %>%
   addKnownZ()
 
 jagsData <- createJagsData(coreData)
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
+jagsData$flowForP<-coreData$flowForP
+jagsData$z[jagsData$z==2]<-0
 
 #create sampleRows
 sampleRows<-coreData %>% mutate(stage=as.numeric(ageInSamples>3)+1) %>%
@@ -61,15 +60,12 @@ jagsData<-within(jagsData,
          nSampleRowsEval=nSampleRowsEval
        })
 
-zInit<-jagsData$knownZ
+zInit<-jagsData$z+1
 zInit[is.na(zInit)]<-0
 zInit[jagsData$firstObsRows]<-NA
-zInit[zInit==1]<-NA
+zInit[zInit %in% c(1,2)]<-NA
 inits<- function(){
-  list(phiBeta = array(0,dim=c(4,d$nYears,d$nRivers+1)),
-       pBeta = array(0,dim=c(4,d$nYears,d$nRivers+1)),
-       z = zInit
-  )      
+  list(z = zInit)      
 }
 
 
@@ -81,7 +77,7 @@ ni <- 5000
 nt <- 5
 nc <- 3
 
-varsToMonitor<-c('pBeta','phiBeta')
+varsToMonitor<-c('pBeta','phiBeta','alive')
 
 gc()
 
@@ -113,7 +109,7 @@ if(parallel==F){
   clusterEvalQ(cl, library(rjags))
   ##Send data to workers, then fit models. One disadvantage of this
   ##parallelization is that you lose the ability to watch the progress bar.
-  clusterExport(cl, list('jagsData','ni','nt','nc','na','varsToMonitor','inits'))
+  clusterExport(cl, list('jagsData','ni','nt','nc','na','varsToMonitor','inits','zInit'))
   out = clusterApply(cl, 1:nc, coda.samples.wrapper)
   ##Reorganize 'par.samples' so that it is recognizeable as an 'mcmc.list' object
   for(i in 1:length(out)) { out[[i]] <- out[[i]][[1]] }
