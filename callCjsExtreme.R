@@ -27,37 +27,40 @@ jagsData$flowForP<-coreData$flowForP
 jagsData$z[jagsData$z==2]<-0
 
 #create sampleRows
-sampleRows<-coreData %>% mutate(stage=as.numeric(ageInSamples>3)+1) %>%
-             select(sampleIndex,river,stage) %>%
+aliveRows<-coreData %>% mutate(stage=as.numeric(ageInSamples>3)+1) %>%
+             select(season,year,river,stage) %>%
              mutate(row=as.numeric(rownames(.))) %>%
-             mutate(river=as.numeric(factor(river,levels=c('west brook','wb jimmy','wb mitchell','wb obear'),ordered=T)))
+             mutate(river=as.numeric(factor(river,levels=c('west brook','wb jimmy','wb mitchell','wb obear'),ordered=T))) %>%
+             mutate(year=year-min(year)+1)
 
-nSampleRows<-sampleRows %>%
-             melt(id.vars=c("sampleIndex","river","stage")) %>%
-             acast(sampleIndex~river~stage,length)
-
-sampleRowArray<-array(NA,dim=c(max(nSampleRows),dim(nSampleRows)))
-for(s in 1:dim(nSampleRows)[1]){
-  for(r in 1:dim(nSampleRows)[2]){
-    for(g in 1:dim(nSampleRows)[3]){
-      if(nSampleRows[s,r,g]>0){
-        sampleRowArray[1:nSampleRows[s,r,g],s,r,g]<-sampleRows %>%
-                                                    filter(sampleIndex==s,river==r,stage==g) %>%
-                                                    select(row) %>%
-                                                    as.matrix()
+nAliveRows<-aliveRows %>%
+             melt(id.vars=c("season","year","river","stage")) %>%
+             acast(season~year~river~stage,length)
+years<-as.numeric(dimnames(nAliveRows)[[2]])
+aliveRowArray<-array(NA,dim=c(max(nAliveRows),dim(nAliveRows)))
+for(s in 1:dim(nAliveRows)[1]){
+  for(y in 1:dim(nAliveRows)[2]){
+    for(r in 1:dim(nAliveRows)[3]){
+      for(g in 1:dim(nAliveRows)[4]){
+        if(nAliveRows[s,y,r,g]>0){
+          aliveRowArray[1:nAliveRows[s,y,r,g],s,y,r,g]<-aliveRows %>%
+                                                        filter(season==s,year==years[y],river==r,stage==g) %>%
+                                                        select(row) %>%
+                                                        as.matrix()
+        }
       }
     }
   }
 }
 
-sampleRowsEval<-sampleRows %>% select(-row) %>% distinct() %>% as.matrix
-nSampleRowsEval<-nrow(sampleRowsEval)
+aliveRowsEval<-aliveRows %>% select(-row) %>% distinct() %>% as.matrix
+nAliveRowsEval<-nrow(aliveRowsEval)
 jagsData<-within(jagsData,
        {
-         sampleRowArray=sampleRowArray
-         nSampleRows=nSampleRows
-         sampleRowsEval=sampleRowsEval
-         nSampleRowsEval=nSampleRowsEval
+         aliveRowArray=aliveRowArray
+         nAliveRows=nAliveRows
+         aliveRowsEval=aliveRowsEval
+         nAliveRowsEval=nAliveRowsEval
        })
 
 zInit<-jagsData$z+1
@@ -71,9 +74,9 @@ inits<- function(){
 
 
 # MCMC settings
-na <- 500
-nb <- 2000
-ni <- 5000
+na <- 5000
+nb <- 5000
+ni <- 10000
 nt <- 5
 nc <- 3
 

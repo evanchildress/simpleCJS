@@ -25,4 +25,5 @@ directory <- tempfile( pattern="output-", tmpdir ='.', fileext='-Cjs')
 dir.create(directory)
 fileOutName<-"cjsMcmc.rds"
 saveRDS(out,file=file.path(directory,fileOutName))
+saveRDS(out,file="results/cjsMcmc.rds")
      

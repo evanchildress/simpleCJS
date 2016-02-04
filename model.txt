@@ -63,10 +63,10 @@
     #* availableDATA[ evalRows[i]+1 ]                 # Must be on the study site to be capturable.
     }
     
-  for(q in 1:nSampleRowsEval){
-      alive[sampleRowsEval[q,1],sampleRowsEval[q,2],sampleRowsEval[q,3]]<-
-        sum(z[sampleRowArray[1:nSampleRows[sampleRowsEval[q,1],sampleRowsEval[q,2],sampleRowsEval[q,3]],
-              sampleRowsEval[q,1],sampleRowsEval[q,2],sampleRowsEval[q,3]]])
+  for(q in 1:nAliveRowsEval){
+      alive[aliveRowsEval[q,1],aliveRowsEval[q,2],aliveRowsEval[q,3],aliveRowsEval[q,4]]<-
+        sum(z[aliveRowArray[1:nAliveRows[aliveRowsEval[q,1],aliveRowsEval[q,2],aliveRowsEval[q,3],aliveRowsEval[q,4]],
+              aliveRowsEval[q,1],aliveRowsEval[q,2],aliveRowsEval[q,3],aliveRowsEval[q,4]]])
   }
 
 
