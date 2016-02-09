@@ -23,7 +23,7 @@ coreData<-createCoreData(sampleType="electrofishing") %>%
 
 jagsData <- createJagsData(coreData)
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
-jagsData$flowForP<-coreData$flowForP
+jagsData$flowForP<-scale(coreData$flowForP)[,1]
 jagsData$z[jagsData$z==2]<-0
 
 #create sampleRows
@@ -74,9 +74,9 @@ inits<- function(){
 
 
 # MCMC settings
-na <- 5000
-nb <- 5000
-ni <- 10000
+na <- 3000
+nb <- 3000
+ni <- 5000
 nt <- 5
 nc <- 3
 

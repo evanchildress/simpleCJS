@@ -1,4 +1,7 @@
-
+out<-readRDS("results/cjsMcmc.rds")
+library(data.table)
+library(dplyr)
+library(plotHacks)
 outArray<-as.array(out)
 
 wrangle<-function(x,margin=c(2)){
@@ -17,19 +20,49 @@ wrangle<-function(x,margin=c(2)){
   result[,var:=as.character(var)]
   
   result[,parameter:=unlist(strsplit(var,"[[]"))[seq(1,nrow(result)*2-1,2)]]
+  
   result[grep(",",var),
-         sample:=stringSplit(stringSplit(var,"[[]",2),",",1)]
-  result[,river:=substr(var,start=nchar(var)-1,stop=nchar(var)-1)]
-  result[,sample:=as.numeric(sample)]
+         season:=stringSplit(var,"[[]",2) %>%
+                 stringSplit(",",1) %>%
+                 as.numeric()]
+  result[,year:=stringSplit(var,"[[]",2) %>%
+                stringSplit(",",2) %>%
+                as.numeric()]
+  result[,river:=stringSplit(var,"[[]",2) %>%
+                 stringSplit(",",3) %>%
+                 as.numeric()]
+  result[,stage:=stringSplit(var,"[[]",2) %>%
+                 stringSplit(",",4) %>%
+                 substr(1,1) %>%
+                 as.numeric()]
   
   return(result)
 }
 
 results<-wrangle(outArray)
-setkey(results,parameter,river,sample)
-results[,season:=(sample/4-floor(sample/4))*4]
-results[season==0,season:=4]
-results[,year:=ceiling(sample/4)+2000]
+setkey(results,parameter,river,year,season)
+alive<-results[parameter=="alive",list(mean,lower,upper,season,year,river,stage)]
+phiBeta<-results[parameter=="phiBeta",list(mean,lower,upper,season,year,river,stage)]
+pBeta<-results[parameter=="pBeta",list(mean,lower,upper,season,year,river,stage)]
+setnames(pBeta,c("season","year"),c("beta","season"))
+
+xFlow<-seq(-0.1,4,0.01)
+for(a in 1:2){
+  tiff.par(paste0("results/p",a,".tif"),
+           mfrow=c(2,2))
+  for(r in 1:4){
+    plot(NA,xlim=c(-3,3),ylim=c(0,1))
+    for(s in 1:4){
+      b1<-pBeta[season==s&river==r&stage==a&beta==1,mean]
+      b2<-pBeta[season==s&river==r&stage==a&beta==2,mean]
+      logitP<-b1+b2*xFlow
+      p<-1/(1+exp(-logitP))
+      points(p~xFlow,type='l',col=palette()[s])
+    }
+  }
+  dev.off()
+}
+
 # 
 # toSummarize<-c("pYoy","pAdult","phiYoy","phiAdult","nYoy","nAdult")
 # 

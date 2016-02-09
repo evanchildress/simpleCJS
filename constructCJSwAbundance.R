@@ -3,13 +3,15 @@ cat("
     
     ############## Recapture model
     for(i in 1:nEvalRows){
-      logit( p[ evalRows[i] ] ) <- pBeta[1,season[ evalRows[i] ],
-                                          riverDATA[ evalRows[ i ] ],
-                                          stageDATA[ evalRows[ i ] ]] +
-                                          pBeta[2,season[ evalRows[i] ],
-                                          riverDATA[ evalRows[ i ] ],
-                                          stageDATA[ evalRows[ i ] ]] *
-                                     flowForP[evalRows[i]]
+      logit(p[evalRows[i]]) <- pBeta[1,
+                                     season[evalRows[i]],
+                                     riverDATA[evalRows[i]],
+                                     stageDATA[evalRows[i]]] +
+                               pBeta[2,
+                                     season[evalRows[i]],
+                                     riverDATA[evalRows[i]],
+                                     stageDATA[evalRows[i]]] *
+                               flowForP[evalRows[i]]
     }
     
     ############## Recapture priors
@@ -26,17 +28,19 @@ cat("
     
     ############## Survival model
     for(i in 1:nEvalRows){
-      logit( phi[ evalRows[i]-1 ] ) <- phiBeta[ season[ evalRows[i]-1 ],year[ evalRows[i]-1 ],
-      riverDATA[ evalRows[ i ]-1 ], stageDATA[evalRows[i]-1] ]
+      logit(phi[evalRows[i]-1]) <- phiBeta[season[evalRows[i]-1],
+                                           year[evalRows[i]-1],
+                                           riverDATA[evalRows[i]-1],
+                                           stageDATA[evalRows[i]-1]]
     }
     
     
     ############## survival priors
     for( s in 1:4 ){    
       for(y in 1:nYears){  
-        for( r in 1:(nRivers) ){
+        for( r in 1:nRivers){
           for(g in 1:2){
-            phiBeta[ s,y,r,g ] ~ dnorm( 0,0.667 )
+            phiBeta[s,y,r,g] ~ dnorm(0,0.667)
           }
         }
       }
@@ -44,29 +48,31 @@ cat("
     
     
     ############## Likelihood
-    # Initial conditions:
-    # 1) individuals enter the sample with probability 1
-    # 2) individuals enter the sample alive, with probability 1
-#     for(i in 1:nFirstObsRows){
-#       z[ firstObsRows[i] ] <- 1
-#     }
     
     for(i in 1:nEvalRows){
     # State of survival
-      z[ evalRows[i] ] ~ dbern( survProb[ evalRows[i]-1 ] ) #Do or don't suvive to i
-      survProb[evalRows[i]-1] <-phi[ evalRows[i]-1 ] * z[ evalRows[i]-1 ] 
+      z[evalRows[i]] ~ dbern(survProb[evalRows[i]-1]) #Do or don't suvive to i
+      survProb[evalRows[i]-1] <- phi[evalRows[i]-1] * z[evalRows[i]-1] 
     
     # Observation of live encounters
-      encDATA[ evalRows[i] ] ~ dbern( obsProb[ evalRows[i] ] )
+      encDATA[evalRows[i]] ~ dbern(obsProb[evalRows[i]])
     
-      obsProb[ evalRows[i] ]<-p[ evalRows[i] ] * z[ evalRows[i] ]   #capture probability times logical alive      
-    #* availableDATA[ evalRows[i]+1 ]                 # Must be on the study site to be capturable.
+      obsProb[evalRows[i]]<-p[evalRows[i]] * z[evalRows[i]] * proportionSampled[evalRows[i]]  #capture probability * logical alive * propSampled      
     }
     
   for(q in 1:nAliveRowsEval){
-      alive[aliveRowsEval[q,1],aliveRowsEval[q,2],aliveRowsEval[q,3],aliveRowsEval[q,4]]<-
-        sum(z[aliveRowArray[1:nAliveRows[aliveRowsEval[q,1],aliveRowsEval[q,2],aliveRowsEval[q,3],aliveRowsEval[q,4]],
-              aliveRowsEval[q,1],aliveRowsEval[q,2],aliveRowsEval[q,3],aliveRowsEval[q,4]]])
+      alive[aliveRowsEval[q,1],
+            aliveRowsEval[q,2],
+            aliveRowsEval[q,3],
+            aliveRowsEval[q,4]]<-
+        sum(z[aliveRowArray[1:nAliveRows[aliveRowsEval[q,1],
+                            aliveRowsEval[q,2],
+                            aliveRowsEval[q,3],
+                            aliveRowsEval[q,4]],
+              aliveRowsEval[q,1],
+              aliveRowsEval[q,2],
+              aliveRowsEval[q,3],
+              aliveRowsEval[q,4]]])
   }
 
 
