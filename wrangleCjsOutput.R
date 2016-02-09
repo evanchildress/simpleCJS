@@ -1,7 +1,10 @@
 out<-readRDS("results/cjsMcmc.rds")
+library(reshape2)
 library(data.table)
 library(dplyr)
 library(plotHacks)
+library(coda)
+
 outArray<-as.array(out)
 
 wrangle<-function(x,margin=c(2)){
@@ -14,8 +17,11 @@ wrangle<-function(x,margin=c(2)){
     sapply(strsplit(x,split), "[[", element)
   }
   
-  result<-data.table(dcast(melt(apply(x,MARGIN=margin,FUN=getSummary)),
-                           var~Var1))
+  result<-apply(x,MARGIN=margin,FUN=getSummary) %>%
+          melt() %>%
+          dcast(var~Var1) %>%
+          data.table()
+    
   setnames(result,c("var","mean","lower","upper"))
   result[,var:=as.character(var)]
   
@@ -46,12 +52,12 @@ phiBeta<-results[parameter=="phiBeta",list(mean,lower,upper,season,year,river,st
 pBeta<-results[parameter=="pBeta",list(mean,lower,upper,season,year,river,stage)]
 setnames(pBeta,c("season","year"),c("beta","season"))
 
-xFlow<-seq(-0.1,4,0.01)
+xFlow<-seq(-1,2,0.01)
 for(a in 1:2){
   tiff.par(paste0("results/p",a,".tif"),
            mfrow=c(2,2))
   for(r in 1:4){
-    plot(NA,xlim=c(-3,3),ylim=c(0,1))
+    plot(NA,xlim=c(-1,0.2),ylim=c(0,1))
     for(s in 1:4){
       b1<-pBeta[season==s&river==r&stage==a&beta==1,mean]
       b2<-pBeta[season==s&river==r&stage==a&beta==2,mean]

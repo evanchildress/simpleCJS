@@ -80,7 +80,7 @@ ni <- 5000
 nt <- 5
 nc <- 3
 
-varsToMonitor<-c('pBeta','phiBeta','alive')
+varsToMonitor<-c('pBeta','phiBeta','alive','pEps')
 
 gc()
 

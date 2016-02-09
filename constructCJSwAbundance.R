@@ -1,6 +1,6 @@
 cat("
     model{
-    
+
     ############## Recapture model
     for(i in 1:nEvalRows){
       logit(p[evalRows[i]]) <- pBeta[1,
@@ -11,20 +11,32 @@ cat("
                                      season[evalRows[i]],
                                      riverDATA[evalRows[i]],
                                      stageDATA[evalRows[i]]] *
-                               flowForP[evalRows[i]]
+                               flowForP[evalRows[i]] 
+#                                +pEps[season[evalRows[i]],
+#                                     year[evalRows[i]],
+#                                     riverDATA[evalRows[i]],
+#                                     stageDATA[evalRows[i]]]
     }
     
     ############## Recapture priors
-    for(b in 1:2){ #betas: 1=intercept,2=slope with discharge during sampling
-      for(s in 1:4 ){    #season
-        for(r in 1:nRivers){#river
-          for(g in 1:2){ #stage
+
+    for(s in 1:4 ){    #season
+      for(r in 1:nRivers){#river
+        for(g in 1:2){ #stage
+          for(b in 1:2){ #betas: 1=intercept,2=slope with discharge during sampling
             pBeta[b,s,r,g] ~ dnorm(0,0.667)
+          }
+#           for(y in nYears){
+#               pEps[s,y,r,g]~dnorm(0,pTau[g])
           }
         }
       }
     }
     
+    for(g in 1:2){
+      pTau[g]<-1/pow(pSigma[g],2)
+      pSigma[g]~dunif(0,10)
+    }
     
     ############## Survival model
     for(i in 1:nEvalRows){
