@@ -1,25 +1,13 @@
-fillRiver<-function(river){
-  known<-which(!is.na(river))
-  unknown<-which(is.na(river))
-  nKnown<-length(unique(river[known]))
-  if(nKnown==1){river[unknown]<-river[known[1]]}else{
-    for(i in unknown){
-      river[i]<-river[known[max(which(i>known))]]
-    }
-  }
-  return(river)
-}
-
 coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
   dplyr::filter(species=="bkt") %>%
   createCmrData() %>%
   group_by(tag) %>%
-  mutate(river=fillRiver(river)) %>%
   ungroup() %>%
   addSampleProperties() %>%
   addEnvironmental(sampleFlow=T) %>%
-  addKnownZ()
+  addKnownZ() %>%
+  fillSizeLocation()
 
 jagsData <- createJagsData(coreData)
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
