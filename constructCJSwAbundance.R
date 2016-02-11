@@ -11,11 +11,8 @@ cat("
                                      season[evalRows[i]],
                                      riverDATA[evalRows[i]],
                                      stageDATA[evalRows[i]]] *
-                               flowForP[evalRows[i]] 
-#                                +pEps[season[evalRows[i]],
-#                                     year[evalRows[i]],
-#                                     riverDATA[evalRows[i]],
-#                                     stageDATA[evalRows[i]]]
+                               observedLength[evalRows[i]] 
+
     }
     
     ############## Recapture priors
