@@ -28,15 +28,15 @@ cat("
           }
 #           for(y in nYears){
 #               pEps[s,y,r,g]~dnorm(0,pTau[g])
-          }
+#           }
         }
       }
     }
     
-    for(g in 1:2){
-      pTau[g]<-1/pow(pSigma[g],2)
-      pSigma[g]~dunif(0,10)
-    }
+#     for(g in 1:2){
+#       pTau[g]<-1/pow(pSigma[g],2)
+#       pSigma[g]~dunif(0,10)
+#     }
     
     ############## Survival model
     for(i in 1:nEvalRows){
