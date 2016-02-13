@@ -5,8 +5,8 @@ coreData<-createCoreData(sampleType="electrofishing") %>%
   fillSizeLocation() %>%
   addSampleProperties() %>%
   addEnvironmental(sampleFlow=T) %>%
-  addKnownZ() %>%
-  filter(ageInSamples<4)
+  addKnownZ() #%>%
+  #filter(ageInSamples<4)
 
 jagsData <- createJagsData(coreData)
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
@@ -77,8 +77,8 @@ inits<- function(){
 
 # MCMC settings
 na <- 3000
-nb <- 3000
-ni <- 5000
+nb <- 12000
+ni <- 15000
 nt <- 5
 nc <- 3
 
