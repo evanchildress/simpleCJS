@@ -10,7 +10,7 @@ library(dplyr)
 library(plotHacks)
 library(coda)
 
-outArray<-as.array(out)
+outArray<-as.array.mcmc.list(out)
 
 wrangle<-function(x,margin=c(2)){
   getSummary<-function(x){
@@ -31,53 +31,76 @@ wrangle<-function(x,margin=c(2)){
   result[,var:=as.character(var)]
   
   result[,parameter:=unlist(strsplit(var,"[[]"))[seq(1,nrow(result)*2-1,2)]]
-  
-  result[grep(",",var),
-         season:=stringSplit(var,"[[]",2) %>%
-                 stringSplit(",",1) %>%
-                 as.numeric()]
-  result[,year:=stringSplit(var,"[[]",2) %>%
-                stringSplit(",",2) %>%
-                as.numeric()]
-  result[,river:=stringSplit(var,"[[]",2) %>%
-                 stringSplit(",",3) %>%
-                 as.numeric()]
-  result[,stage:=stringSplit(var,"[[]",2) %>%
-                 stringSplit(",",4) %>%
-                 substr(1,1) %>%
-                 as.numeric()]
-  
+  getIndices<-function(x){
+    ch<-strsplit(x[1],"")[[1]]
+    n<-sum(ch==",")+1
+    return(n)
+  }
+  nIndices<-list()
+  for(p in unique(result$parameter)){
+    nIndices[[p]]<-getIndices(result[parameter==p,var])
+
+      groupedIndices<-result[parameter==p,var] %>%
+        stringSplit("[[]",2) %>% 
+        stringSplit("[]]",1)
+    for(w in 1:nIndices[[p]]){
+      result[parameter==p,paste0("i",w):=.(stringSplit(groupedIndices,",",w))]
+    }
+  }
+  nIndices<<-nIndices
   return(result)
 }
 
 results<-wrangle(outArray)
-setkey(results,parameter,river,year,season)
-alive<-results[parameter=="alive",list(mean,lower,upper,season,year,river,stage)]
-phiBeta<-results[parameter=="phiBeta",list(mean,lower,upper,season,year,river,stage)]
-pBeta<-results[parameter=="pBeta",list(mean,lower,upper,season,year,river,stage)]
-setnames(pBeta,c("season","year"),c("beta","season"))
+# alive<-results[parameter=="alive",
+#                c("mean","lower","upper",paste0("i",1:nIndices[['alive']])),
+#                with=F] %>%
+#        setnames(c("i1","i2","i3","i4"),c("season","year","river","stage"))
+phiBeta<-results[parameter=="phiBeta",
+               c("mean","lower","upper",paste0("i",1:nIndices[['phiBeta']])),
+               with=F] %>%
+      setnames(c("i1","i2","i3","i4"),c("season","year","river","stage"))
+pBeta<-results[parameter=="pBeta",
+               c("mean","lower","upper",paste0("i",1:nIndices[['pBeta']])),
+               with=F] %>%
+      setnames(c("i1","i2"),c("river","beta"))
 ```
 
 ```{r plot p by flow}
-xFlow<-seq(-1,2,0.01)
-for(a in 1:2){
-  tiff.par(paste0("results/p",a,".tif"),
-           mfrow=c(2,2))
+xLength<-seq(-2,2,0.01)
+xFlow<-seq(-2,2,0.01)
+#   tiff.par(paste0("results/p",".tif"),
+#            mfrow=c(2,2))
+logitP<-p<-array(NA,dim=c(length(xFlow),3))
   for(r in 1:4){
-    plot(NA,xlim=c(-1,0.2),ylim=c(0,1))
-    for(s in 1:4){
-      b1<-pBeta[season==s&river==r&stage==a&beta==1,mean]
-      b2<-pBeta[season==s&river==r&stage==a&beta==2,mean]
-      logitP<-b1+b2*xFlow
-      p<-1/(1+exp(-logitP))
-      points(p~xFlow,type='l',col=palette()[s])
-    }
+    plot(NA,xlim=c(min(xLength),max(xLength)),ylim=c(0,1))
+      b1<-t(pBeta[beta==1&river==r,.(mean,lower,upper)] )[,1]
+      b2<-t(pBeta[beta==2&river==r,.(mean,lower,upper)] )[,1]
+      b3<-t(pBeta[beta==3&river==r,.(mean,lower,upper)] )[,1]
+      for(d in 1:3){
+        logitP[,d]<-b1[d]+b2[d]*xLength
+        p[,d]<-1/(1+exp(-logitP[,d]))
+        points(p[,d]~xLength,type='l',col=palette()[r],lty=as.numeric(d>1)+1)
+      }
   }
-  dev.off()
-}
+
+  for(r in 1:4){
+    plot(NA,xlim=c(min(xLength),max(xLength)),ylim=c(0,1))
+      b1<-t(pBeta[beta==1&river==r,.(mean,lower,upper)] )[,1]
+      b2<-t(pBeta[beta==2&river==r,.(mean,lower,upper)] )[,1]
+      b3<-t(pBeta[beta==3&river==r,.(mean,lower,upper)] )[,1]
+      for(d in 1:3){
+        logitP[,d]<-b1[d]+b3[d]*xFlow
+        p[,d]<-1/(1+exp(-logitP[,d]))
+        points(p[,d]~xFlow,type='l',col=palette()[r],lty=as.numeric(d>1)+1)
+      }
+  }
+
+saveRDS(pBeta,"results/pForYoy.rds")
+  # dev.off()
 
 ```
 
 ```{r traceplots}
-traceplot(out)
+#traceplot(out)
 ```

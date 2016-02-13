@@ -2,18 +2,32 @@ coreData<-createCoreData(sampleType="electrofishing") %>%
   addTagProperties() %>%
   dplyr::filter(species=="bkt") %>%
   createCmrData() %>%
-  group_by(tag) %>%
-  ungroup() %>%
+  fillSizeLocation() %>%
   addSampleProperties() %>%
   addEnvironmental(sampleFlow=T) %>%
   addKnownZ() %>%
-  fillSizeLocation()
+  filter(ageInSamples<4)
 
 jagsData <- createJagsData(coreData)
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
 jagsData$flowForP<-scale(coreData$flowForP)[,1]
 jagsData$z[jagsData$z==2]<-0
-
+jagsData$lengthDATA<-coreData %>% 
+                      group_by(river) %>%
+                      transmute(length=scale(observedLength)[,1]) %>%
+                      ungroup() %>%
+                      data.table() %>%
+                      .[,length]
+stds<-list(length=coreData %>% 
+                  group_by(river) %>%
+                  summarize(meanLength=mean(observedLength,na.rm=T),
+                            sdLength=sd(observedLength,na.rm=T)),
+           flowForP=coreData %>%
+                    summarize(meanFlow=mean(flowForP),
+                              sdFlow=sd(flowForP)))
+saveRDS(stds,"results/standards.rds")
+)
+                   
 #create sampleRows
 aliveRows<-coreData %>% mutate(stage=as.numeric(ageInSamples>3)+1) %>%
              select(season,year,river,stage) %>%
@@ -68,7 +82,7 @@ ni <- 5000
 nt <- 5
 nc <- 3
 
-varsToMonitor<-c('pBeta','phiBeta','alive','pEps')
+varsToMonitor<-c('pBeta','phiBeta')
 
 gc()
 
