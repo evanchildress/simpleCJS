@@ -5,6 +5,7 @@ library(getWBData)
 library(R2jags)
 library(lubridate)
 library(reshape2)
+library(data.table)
 simNum <- 1
 
 source("constructCJSwAbundance.R")
@@ -25,5 +26,4 @@ directory <- tempfile( pattern="output-", tmpdir ='.', fileext='-Cjs')
 dir.create(directory)
 fileOutName<-"cjsMcmc.rds"
 saveRDS(out,file=file.path(directory,fileOutName))
-saveRDS(out,file="results/cjsMcmc.rds")
-     
+saveRDS(out,file="results/bntYoyCjsMcmc.rds")

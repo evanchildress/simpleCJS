@@ -3,7 +3,7 @@ title: "cjsOutput"
 output: html_document
 ---
 ```{r load and wrangle}
-out<-readRDS("results/cjsMcmc.rds")
+out<-readRDS("results/bntYoyCjsMcmc.rds")
 library(reshape2)
 library(data.table)
 library(dplyr)
@@ -52,10 +52,10 @@ wrangle<-function(x,margin=c(2)){
 }
 
 results<-wrangle(outArray)
-# alive<-results[parameter=="alive",
-#                c("mean","lower","upper",paste0("i",1:nIndices[['alive']])),
-#                with=F] %>%
-#        setnames(c("i1","i2","i3","i4"),c("season","year","river","stage"))
+alive<-results[parameter=="alive",
+               c("mean","lower","upper",paste0("i",1:nIndices[['alive']])),
+               with=F] %>%
+       setnames(c("i1","i2","i3","i4"),c("season","year","river","stage"))
 phiBeta<-results[parameter=="phiBeta",
                c("mean","lower","upper",paste0("i",1:nIndices[['phiBeta']])),
                with=F] %>%
@@ -64,6 +64,7 @@ pBeta<-results[parameter=="pBeta",
                c("mean","lower","upper",paste0("i",1:nIndices[['pBeta']])),
                with=F] %>%
       setnames(c("i1","i2"),c("river","beta"))
+saveRDS(pBeta,"bntYoyP.rds")
 ```
 
 ```{r plot p by flow}
@@ -72,7 +73,7 @@ xFlow<-seq(-2,2,0.01)
 #   tiff.par(paste0("results/p",".tif"),
 #            mfrow=c(2,2))
 logitP<-p<-array(NA,dim=c(length(xFlow),3))
-  for(r in 1:4){
+  for(r in 1:3){
     plot(NA,xlim=c(min(xLength),max(xLength)),ylim=c(0,1))
       b1<-t(pBeta[beta==1&river==r,.(mean,lower,upper)] )[,1]
       b2<-t(pBeta[beta==2&river==r,.(mean,lower,upper)] )[,1]
@@ -84,7 +85,7 @@ logitP<-p<-array(NA,dim=c(length(xFlow),3))
       }
   }
 
-  for(r in 1:4){
+  for(r in 1:3){
     plot(NA,xlim=c(min(xLength),max(xLength)),ylim=c(0,1))
       b1<-t(pBeta[beta==1&river==r,.(mean,lower,upper)] )[,1]
       b2<-t(pBeta[beta==2&river==r,.(mean,lower,upper)] )[,1]
@@ -96,7 +97,7 @@ logitP<-p<-array(NA,dim=c(length(xFlow),3))
       }
   }
 
-saveRDS(pBeta,"results/pForYoy.rds")
+saveRDS(alive,"results/bntYoyAlive.rds")
   # dev.off()
 
 ```

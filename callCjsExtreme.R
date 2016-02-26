@@ -1,12 +1,12 @@
 coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
-  dplyr::filter(species=="bkt") %>%
+  dplyr::filter(species=="bnt") %>%
   createCmrData() %>%
   fillSizeLocation() %>%
   addSampleProperties() %>%
   addEnvironmental(sampleFlow=T) %>%
-  addKnownZ() #%>%
-  #filter(ageInSamples<4)
+  addKnownZ() %>%
+  filter(ageInSamples<4)
 
 jagsData <- createJagsData(coreData)
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
@@ -26,7 +26,6 @@ stds<-list(length=coreData %>%
                     summarize(meanFlow=mean(flowForP),
                               sdFlow=sd(flowForP)))
 saveRDS(stds,"results/standards.rds")
-)
                    
 #create sampleRows
 aliveRows<-coreData %>% mutate(stage=as.numeric(ageInSamples>3)+1) %>%
@@ -77,12 +76,12 @@ inits<- function(){
 
 # MCMC settings
 na <- 3000
-nb <- 12000
-ni <- 15000
+nb <- 8000
+ni <- 11000
 nt <- 5
 nc <- 3
 
-varsToMonitor<-c('pBeta','phiBeta')
+varsToMonitor<-c('pBeta','phiBeta','alive')
 
 gc()
 
