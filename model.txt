@@ -1,74 +1,26 @@
-
-    model{
-
-    ############## Recapture model
-    for(i in 1:nEvalRows){
-      logit(p[evalRows[i]]) <- pBeta[riverDATA[i],1] +
-                               pBeta[riverDATA[i],2] * lengthDATA[evalRows[i]]+
-                               pBeta[riverDATA[i],3] * flowForP[evalRows[i]]
-    }
-    
-    ############## Recapture priors
-
-#     for(s in 1:4 ){    #season
-      for(r in 1:nRivers){#river
-#         for(g in 1:2){ #stage
-          for(b in 1:3){ #betas: 1=intercept,2=slope for size, 3=slope with discharge during sampling
-            pBeta[r,b] ~ dnorm(0,0.667)
-          }
-#         }
-      }
-#     }
-    
-    ############## Survival model
-    for(i in 1:nEvalRows){
-      logit(phi[evalRows[i]-1]) <- phiBeta[season[evalRows[i]-1],
-                                           year[evalRows[i]-1],
-                                           riverDATA[evalRows[i]-1],
-                                           stageDATA[evalRows[i]-1]]
-    }
-    
-    
-    ############## survival priors
-    for( s in 1:4 ){    
-      for(y in 1:nYears){  
-        for( r in 1:nRivers){
-          for(g in 1:2){
-            phiBeta[s,y,r,g] ~ dnorm(0,0.667)
-          }
-        }
-      }
-    }
-    
-    
-    ############## Likelihood
-    
-    for(i in 1:nEvalRows){
-    # State of survival
-      z[evalRows[i]] ~ dbern(survProb[evalRows[i]-1]) #Do or don't suvive to i
-      survProb[evalRows[i]-1] <- phi[evalRows[i]-1] * z[evalRows[i]-1] 
-    
-    # Observation of live encounters
-      encDATA[evalRows[i]] ~ dbern(obsProb[evalRows[i]])
-    
-      obsProb[evalRows[i]]<-p[evalRows[i]] * z[evalRows[i]] * proportionSampled[evalRows[i]]  #capture probability * logical alive * propSampled      
-    }
-    
-  for(q in 1:nAliveRowsEval){
-      alive[aliveRowsEval[q,1],
-            aliveRowsEval[q,2],
-            aliveRowsEval[q,3],
-            aliveRowsEval[q,4]]<-
-        sum(z[aliveRowArray[1:nAliveRows[aliveRowsEval[q,1],
-                            aliveRowsEval[q,2],
-                            aliveRowsEval[q,3],
-                            aliveRowsEval[q,4]],
-              aliveRowsEval[q,1],
-              aliveRowsEval[q,2],
-              aliveRowsEval[q,3],
-              aliveRowsEval[q,4]]])
+model{
+  psiMu~dnorm(0,0.01)
+  psiSigma~dunif(0,10)
+  psiTau<-1/pow(psiSigma,-2)
+  
+  pMu~dnorm(0,0.01)
+  pSigma~dunif(0,10)
+  pTau<-1/pow(pSigma,-2)
+  
+  for(species in 1:nSpecies){
+    logitPsi[species]~dnorm(psiMu,psiTau)
+    psi[species]<-1/(1+exp(-logitPsi[species]))
+    logitP[species]~dnorm(pMu,pTau)
+    p[species]<-1/(1+exp(-logitP[species]))
   }
-
-
-
+  
+  for(site in 1:nSites){
+    for(species in 1:nSpecies){
+      occ[site,species]~dbern(psi[species])
+      detProb[site,species]<-occ[site,species]*p[species]
+      for(pass in 1:nPasses){
+        detArray[site,species,pass]~dbern(detProb[site,species])  
+      }
     }
+  }
+}

@@ -64,7 +64,7 @@ pBeta<-results[parameter=="pBeta",
                c("mean","lower","upper",paste0("i",1:nIndices[['pBeta']])),
                with=F] %>%
       setnames(c("i1","i2"),c("river","beta"))
-saveRDS(pBeta,"bntYoyP.rds")
+saveRDS(pBeta,"results/bntAdultP.rds")
 ```
 
 ```{r plot p by flow}
@@ -97,7 +97,7 @@ logitP<-p<-array(NA,dim=c(length(xFlow),3))
       }
   }
 
-saveRDS(alive,"results/bntYoyAlive.rds")
+saveRDS(alive,"results/bntAdultAlive.rds")
   # dev.off()
 
 ```

@@ -1,12 +1,14 @@
 coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
-  dplyr::filter(species=="bnt") %>%
+  dplyr::filter(species==selectSpecies) %>%
   createCmrData() %>%
   fillSizeLocation() %>%
   addSampleProperties() %>%
   addEnvironmental(sampleFlow=T) %>%
-  addKnownZ() %>%
-  filter(ageInSamples<4)
+  addKnownZ()
+if(yoy==T){
+  coreData<-filter(coreData,ageInSamples<4)
+}
 
 jagsData <- createJagsData(coreData)
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
@@ -25,7 +27,8 @@ stds<-list(length=coreData %>%
            flowForP=coreData %>%
                     summarize(meanFlow=mean(flowForP),
                               sdFlow=sd(flowForP)))
-saveRDS(stds,"results/standards.rds")
+
+saveRDS(stds,file=paste0("results/",selectSpecies,ifelse(yoy,"Yoy","Adult"),"Standards.rds"))
                    
 #create sampleRows
 aliveRows<-coreData %>% mutate(stage=as.numeric(ageInSamples>3)+1) %>%
@@ -82,7 +85,7 @@ nt <- 5
 nc <- 3
 
 varsToMonitor<-c('pBeta','phiBeta','alive')
-
+if(run==T){
 gc()
 
 (beforeJags<-Sys.time())
@@ -125,3 +128,4 @@ if(parallel==F){
 
 ( done <- Sys.time() ) 
 print(done - beforeJags)
+}
