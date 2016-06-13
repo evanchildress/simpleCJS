@@ -1,10 +1,11 @@
 library(getWBData)
 library(data.table)
 library(jagsUI)
+library(reshape2)
 
 coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
-  dplyr::filter(species=="bkt" & river=="wb obear") %>%
+  dplyr::filter(species=="bkt") %>%
   createCmrData() %>%
   fillSizeLocation() %>%
   addSampleProperties() %>%
@@ -26,23 +27,39 @@ jagsData <- createJagsData(coreData)
 
 coreData<-data.table(coreData)
 
-flowData<-tbl(conDplyr,"data_daily_discharge") %>%
-          filter(river=="wb obear") %>%
+flowData<-tbl(conDplyr,"data_flow_extension") %>%
+          # filter(river=="wb obear") %>%
           collect() %>%
           data.table() %>%
-          .[date>=as.Date(min(coreData$detectionDate))&
-            date<=as.Date(max(coreData$detectionDate))] %>%
-          .[,discharge:=log(discharge)]
+          .[date>=min(coreData$detectionDate)&
+            date<=max(coreData$detectionDate)] %>%
+          .[,discharge:=log(qPredicted+0.08)] %>%
+          .[,.(date,river,discharge)] %>%
+          melt(id.vars=c("date","river")) %>%
+          acast(date~river)
 
-tempData<-tbl(conDplyr,"data_hourly_temperature") %>%
-  filter(river=="wb obear") %>%
+flowData<-cbind(flowData[,1],flowData[,1],flowData[,1],flowData[,1])
+
+tempData<-tbl(conDplyr,"data_daily_temperature") %>%
+  # filter(river=="wb obear") %>%
   collect() %>%
   data.table() %>%
-  .[datetime>=min(coreData$detectionDate)&
-    datetime<=max(coreData$detectionDate)] %>%
-  .[,.(temperature=max(temperature)),by=.(date=as.Date(datetime))]
+  .[date>=min(coreData$detectionDate)&
+    date<=max(coreData$detectionDate)] %>%
+  .[,.(date=as.Date(date),river,temperature=daily_max_temp)]
+  
+time<-tempData[river=="west brook",date] 
 
-coreData[,time:=which(as.Date(detectionDate)==tempData$date),by=detectionDate]
+tempData<-tempData  %>%
+  .[,.(date,river,temperature)] %>%
+  melt(id.vars=c("date","river")) %>%
+  acast(date~river)
+
+coreData[,time:=which(as.Date(detectionDate)==time),by=detectionDate]
+
+scale2<-function(x){
+  return(scale(x)[,1])
+}
 
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
 jagsData$flowForP<-scale(coreData$flowForP)[,1]
@@ -53,12 +70,10 @@ jagsData$lengthDATA<-coreData %>%
                       ungroup() %>%
                       data.table() %>%
                       .[,length]
-jagsData$tempDATA<-tempData$temperature
-jagsData$flowDATA<-flowData$discharge
+jagsData$tempDATA<-apply(tempData,2,scale2)
+jagsData$flowDATA<-apply(flowData,2,scale2)
 jagsData$time<-coreData$time
-jagsData$nTimes<-nrow(tempData)
-
-jagsData$riverDATA<-rep(1,nrow(coreData))
+jagsData$nTimes<-length(time)
 
 stds<-list(length=coreData %>% 
                   group_by(river) %>%
@@ -67,12 +82,10 @@ stds<-list(length=coreData %>%
            flowForP=coreData %>%
                     summarize(meanFlow=mean(flowForP),
                               sdFlow=sd(flowForP)),
-           flow=flowData %>% 
-                summarize(meanFlow=mean(discharge),
-                          sdFlow=sd(discharge)),
-           temp=tempData %>%
-                summarize(meanTemp=mean(temperature),
-                          sdTemp=sd(temperature)))
+           flow=list(meanFlow=apply(flowData,2,mean),
+                     sdFlow=apply(flowData,2,sd)),
+           temp=list(meanTemp=apply(tempData,2,mean),
+                     sdTemp=apply(tempData,2,sd)))
 
 saveRDS(stds,"results/summationStandards.rds")
 

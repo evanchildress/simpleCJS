@@ -1,10 +1,16 @@
 model{
   ############## Recapture model
   for(i in 1:nEvalRows){
-    logit( p[ evalRows[i] ] ) <- pBeta[season[evalRows[i]],
-                                       year[evalRows[i]],
+    logit( p[ evalRows[i] ] ) <- pBeta[1,
+                                       season[evalRows[i]],
                                        riverDATA[evalRows[i]],
-                                       stageDATA[evalRows[i]]]
+                                       stageDATA[evalRows[i]]]+
+                                  pBeta[2,
+                                        season[evalRows[i]],
+                                        riverDATA[evalRows[i]],
+                                        stageDATA[evalRows[i]]]*
+                                  flowForP[evalRows[i]]
+      
   }
 
   ############## Recapture priors
@@ -31,8 +37,8 @@ model{
     for(r in 1:nRivers){
       for(g in 1:2){
         logitPhi[t,r,g]<-phiBeta[1,r,g]+
-          phiBeta[2,r,g]*flowDATA[t]+phiBeta[3,r,g]*flowDATA[t]^2+
-          phiBeta[4,r,g]*tempDATA[t]
+          phiBeta[2,r,g]*flowDATA[t,r]+phiBeta[3,r,g]*flowDATA[t,r]^2+
+          phiBeta[4,r,g]*tempDATA[t,r]
         phi[t,r,g]<-1/(1+exp(-logitPhi[t,r,g]))
       }
     }
