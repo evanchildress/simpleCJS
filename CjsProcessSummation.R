@@ -14,18 +14,17 @@ model{
   }
 
   ############## Recapture priors
-
+for(b in 1:2){
   for( s in 1:4 ){
-    for(y in 1:nYears){
       for( r in 1:(nRivers) ){
         for(g in 1:2){
-          pBeta[ s,y,r,g ] ~ dnorm( 0,0.667 )
+          pBeta[ b,s,r,g ] ~ dnorm( 0,0.667 )
         }
       }
     }
   }
 
-  for(b in 1:4){
+  for(b in 1:8){
     for(r in 1:nRivers){
       for(g in 1:2){
         phiBeta[b,r,g]~dnorm(0,0.667)
@@ -33,12 +32,26 @@ model{
     }
   }
 
+  for(i in 1:nEvalRows){
+    for(t in time[i-1]:time[i]){
+      logitPhi[i,t]<-phiBeta[1,riverDATA[i]]+
+                     phiBeta[2,riverDATA[i]]*flowDATA[t,riverDATA[i]]+
+                     phiBeta[3,riverDATA[i]]*flowDATA[t,riverDATA[i]]^2+
+                     phiBeta[4,riverDATA[i]]*tempDATA[t,riverDATA[i]]+
+                     phiBeta[5,riverDATA[i]]*lengthDATA[i]+
+                     phiBeta[6,riverDATA[i]]*lengthDATA[i]*flowDATA[t,riverDATA[i]]+
+                     phiBeta[7,riverDATA[i]]*lengthDATA[i]*flowDATA[t,riverDATA[i]]^2
+    }
+    survProb[i]<-1/(1+exp(-prod(logitPhi[i,time[i-1]:time[i]])))
+  }
+  
   for(t in 1:nTimes){
     for(r in 1:nRivers){
       for(g in 1:2){
         logitPhi[t,r,g]<-phiBeta[1,r,g]+
           phiBeta[2,r,g]*flowDATA[t,r]+phiBeta[3,r,g]*flowDATA[t,r]^2+
-          phiBeta[4,r,g]*tempDATA[t,r]
+          phiBeta[4,r,g]*tempDATA[t,r]+phiBeta[5,r,g]*tempDATA[t,r]^2+
+          phiBeta[6,r,g]*lengthDATA[]
         phi[t,r,g]<-1/(1+exp(-logitPhi[t,r,g]))
       }
     }
