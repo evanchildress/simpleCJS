@@ -12,33 +12,34 @@ coreData<-createCoreData(sampleType="electrofishing") %>%
   addEnvironmental(sampleFlow=T) %>%
   addKnownZ()
 
-# ##Need to fix the addKnownZ function so the sample numbers from the other drainage don't f it up
-# coreData[coreData$knownZ==2&coreData$enc==1,"knownZ"]<-1
-# coreData<-coreData %>%
-#   group_by(tag) %>%
-#   mutate(last1=max(detectionDate)) %>%
-#   ungroup()
-# 
-# coreData[!is.na(coreData$knownZ)&coreData$detectionDate<coreData$last1&coreData$knownZ==2,"knownZ"]<-1
-# coreData[is.na(coreData$knownZ)&coreData$detectionDate<coreData$last1,"knownZ"]<-1
-# # end temporary fix for addKnownZ problem
-
 jagsData <- createJagsData(coreData)
 
 coreData<-data.table(coreData)
 
-flowData<-tbl(conDplyr,"data_flow_extension") %>%
-          # filter(river=="wb obear") %>%
-          collect() %>%
-          data.table() %>%
-          .[date>=min(coreData$detectionDate)&
-            date<=max(coreData$detectionDate)] %>%
-          .[,discharge:=log(qPredicted+0.08)] %>%
-          .[,.(date,river,discharge)] %>%
-          melt(id.vars=c("date","river")) %>%
-          acast(date~river)
+# flowData<-tbl(conDplyr,"data_flow_extension") %>%
+#           # filter(river=="wb obear") %>%
+#           collect() %>%
+#           data.table() %>%
+#           .[date>=min(coreData$detectionDate)&
+#             date<=max(coreData$detectionDate)] %>%
+#           .[,discharge:=log(qPredicted+0.08)] %>%
+#           .[,.(date,river,discharge)] %>%
+#           melt(id.vars=c("date","river")) %>%
+#           acast(date~river)
+# 
+# flowData<-cbind(flowData[,1],flowData[,1],flowData[,1],flowData[,1])
 
-flowData<-cbind(flowData[,1],flowData[,1],flowData[,1],flowData[,1])
+flowData<-tbl(conDplyr,"data_daily_discharge") %>%
+  # filter(river=="wb obear") %>%
+  collect() %>%
+  data.table() %>%
+  .[date>=as.Date(min(coreData$detectionDate))&
+      date<=as.Date(max(coreData$detectionDate))] %>%
+  .[,discharge:=log(discharge)] %>%
+  .[,.(date,river,discharge)] %>%
+  melt(id.vars=c("date","river")) %>%
+  acast(date~river)
+
 
 tempData<-tbl(conDplyr,"data_daily_temperature") %>%
   # filter(river=="wb obear") %>%
@@ -60,6 +61,7 @@ coreData[,time:=which(as.Date(detectionDate)==time),by=detectionDate]
 scale2<-function(x){
   return(scale(x)[,1])
 }
+
 
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
 jagsData$flowForP<-scale(coreData$flowForP)[,1]
