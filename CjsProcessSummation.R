@@ -31,16 +31,18 @@ model{
     }
   
   for(i in 1:nEvalRows){
-    for(t in time[evalRows[i]-1]:time[evalRows[i]]){
+    for(t in 1:nTimesByRow[evalRows[i]]){ 
+    #for(t in time[evalRows[i]-1]:time[evalRows[i]]){
       logitPhi[evalRows[i],t]<-phiBeta[1,riverDATA[evalRows[i]]]+
-        phiBeta[2,riverDATA[evalRows[i]]]*flowDATA[t,riverDATA[evalRows[i]]]+
-        phiBeta[3,riverDATA[evalRows[i]]]*flowDATA[t,riverDATA[evalRows[i]]]^2+
-        phiBeta[4,riverDATA[evalRows[i]]]*tempDATA[t,riverDATA[evalRows[i]]]+
+        phiBeta[2,riverDATA[evalRows[i]]]*flowDATA[timesByRow[evalRows[i],t],riverDATA[evalRows[i]]]+
+        phiBeta[3,riverDATA[evalRows[i]]]*flowDATA[timesByRow[evalRows[i],t],riverDATA[evalRows[i]]]^2+
+        phiBeta[4,riverDATA[evalRows[i]]]*tempDATA[timesByRow[evalRows[i],t],riverDATA[evalRows[i]]]+
         phiBeta[5,riverDATA[evalRows[i]]]*lengthDATA[evalRows[i]]+
-        phiBeta[6,riverDATA[evalRows[i]]]*lengthDATA[evalRows[i]]*flowDATA[t,riverDATA[evalRows[i]]]+
-        phiBeta[7,riverDATA[evalRows[i]]]*lengthDATA[evalRows[i]]*flowDATA[t,riverDATA[evalRows[i]]]^2
+        phiBeta[6,riverDATA[evalRows[i]]]*lengthDATA[evalRows[i]]*flowDATA[timesByRow[evalRows[i],t],riverDATA[evalRows[i]]]+
+        phiBeta[7,riverDATA[evalRows[i]]]*lengthDATA[evalRows[i]]*flowDATA[timesByRow[evalRows[i],t],riverDATA[evalRows[i]]]^2
       phi[evalRows[i],t]<-1/(1+exp(-logitPhi[evalRows[i],t]))
     }
+    
   }
   
 #   for(t in 1:nTimes){
@@ -57,7 +59,7 @@ model{
   for(i in 1:nEvalRows){
     # State of survival
     z[ evalRows[i] ] ~ dbern( survProb[ evalRows[i] ] ) #Do or don't suvive to i
-    survProb[evalRows[i]] <-prod(phi[evalRows[i],time[evalRows[i]-1]:time[evalRows[i]]])*
+    survProb[evalRows[i]] <-prod(phi[evalRows[i],1:nTimesByRow[evalRows[i]]])*
       z[ evalRows[i]-1 ]
     
 #     survProb[evalRows[i]] <- prod(phi[time[evalRows[i]-1]:time[evalRows[i]],

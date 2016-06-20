@@ -62,6 +62,7 @@ scale2<-function(x){
   return(scale(x)[,1])
 }
 
+coreData[,nTimes:=c(NA,diff(time)+1),by=tag]
 
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
 jagsData$flowForP<-scale(coreData$flowForP)[,1]
@@ -76,6 +77,14 @@ jagsData$tempDATA<-apply(tempData,2,scale2)
 jagsData$flowDATA<-apply(flowData,2,scale2)
 jagsData$time<-coreData$time
 jagsData$nTimes<-length(time)
+jagsData$nTimesByRow<-coreData$nTimes
+
+timesByRow<-array(NA,dim=c(nrow(coreData),max(coreData$nTimes,na.rm=T)))
+for(i in 1:nrow(coreData)){
+  if(is.na(coreData$nTimes[i])){next}
+  timesByRow[i,1:coreData$nTimes[i]]<-coreData$time[i-1]:coreData$time[i]
+}
+jagsData$timesByRow<-timesByRow
 
 stds<-list(length=coreData %>% 
                   group_by(river) %>%
