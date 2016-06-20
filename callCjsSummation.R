@@ -1,11 +1,10 @@
 library(getWBData)
 library(data.table)
 library(jagsUI)
-library(reshape2)
 
 coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
-  dplyr::filter(species=="bkt") %>%
+  dplyr::filter(species=="bkt"&river=="wb obear") %>%
   createCmrData() %>%
   fillSizeLocation() %>%
   addSampleProperties() %>%
@@ -23,43 +22,32 @@ coreData<-createCoreData(sampleType="electrofishing") %>%
 # coreData[is.na(coreData$knownZ)&coreData$detectionDate<coreData$last1,"knownZ"]<-1
 # # end temporary fix for addKnownZ problem
 
-jagsData <- createJagsData(coreData)
+jagsData <- createJagsData(data.frame(coreData))
 
 coreData<-data.table(coreData)
 
-flowData<-tbl(conDplyr,"data_flow_extension") %>%
-          # filter(river=="wb obear") %>%
+flowData<-tbl(conDplyr,"data_daily_discharge") %>%
+          filter(river=="wb obear") %>%
           collect() %>%
           data.table() %>%
-          .[date>=min(coreData$detectionDate)&
-            date<=max(coreData$detectionDate)] %>%
-          .[,discharge:=log(qPredicted+0.08)] %>%
-          .[,.(date,river,discharge)] %>%
-          melt(id.vars=c("date","river")) %>%
-          acast(date~river)
+          .[date>=as.Date(min(coreData$detectionDate))&
+            date<=as.Date(max(coreData$detectionDate))] %>%
+          .[,discharge:=log(discharge)]
 
-flowData<-cbind(flowData[,1],flowData[,1],flowData[,1],flowData[,1])
 
-tempData<-tbl(conDplyr,"data_daily_temperature") %>%
-  # filter(river=="wb obear") %>%
-  collect() %>%
-  data.table() %>%
-  .[date>=min(coreData$detectionDate)&
-    date<=max(coreData$detectionDate)] %>%
-  .[,.(date=as.Date(date),river,temperature=daily_max_temp)]
-  
-time<-tempData[river=="west brook",date] 
+# tempData<-tbl(conDplyr,"data_hourly_temperature") %>%
+#   # filter(river=="wb obear") %>%
+#   collect() %>%
+#   data.table() %>%
+load("C:/Users/Evan/Desktop/Conte/perform/data/wbTemps.rData")
+tempData<-temp %>%
+  .[datetime>=min(coreData$detectionDate)&
+    datetime<=max(coreData$detectionDate)] %>%
+  .[,.(temperature=max(temperature)),by=.(date=as.Date(datetime))]
 
-tempData<-tempData  %>%
-  .[,.(date,river,temperature)] %>%
-  melt(id.vars=c("date","river")) %>%
-  acast(date~river)
+if(exists("temp")){rm(temp)}
 
-coreData[,time:=which(as.Date(detectionDate)==time),by=detectionDate]
-
-scale2<-function(x){
-  return(scale(x)[,1])
-}
+coreData[,time:=which(as.Date(detectionDate)==tempData$date),by=detectionDate]
 
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
 jagsData$flowForP<-scale(coreData$flowForP)[,1]
@@ -70,10 +58,11 @@ jagsData$lengthDATA<-coreData %>%
                       ungroup() %>%
                       data.table() %>%
                       .[,length]
-jagsData$tempDATA<-apply(tempData,2,scale2)
-jagsData$flowDATA<-apply(flowData,2,scale2)
+jagsData$tempDATA<-tempData$temperature
+jagsData$flowDATA<-flowData$discharge
 jagsData$time<-coreData$time
-jagsData$nTimes<-length(time)
+jagsData$nTimes<-nrow(tempData)
+
 
 stds<-list(length=coreData %>% 
                   group_by(river) %>%
@@ -82,10 +71,12 @@ stds<-list(length=coreData %>%
            flowForP=coreData %>%
                     summarize(meanFlow=mean(flowForP),
                               sdFlow=sd(flowForP)),
-           flow=list(meanFlow=apply(flowData,2,mean),
-                     sdFlow=apply(flowData,2,sd)),
-           temp=list(meanTemp=apply(tempData,2,mean),
-                     sdTemp=apply(tempData,2,sd)))
+           flow=flowData %>% 
+                summarize(meanFlow=mean(discharge),
+                          sdFlow=sd(discharge)),
+           temp=tempData %>%
+                summarize(meanTemp=mean(temperature),
+                          sdTemp=sd(temperature)))
 
 saveRDS(stds,"results/summationStandards.rds")
 
@@ -120,6 +111,6 @@ beforeJags<-Sys.time()
     n.iter = ni,
     n.thin = nt,
     n.burnin=nb,
-    parallel=T)
+    parallel=F)
 done <- Sys.time() 
 print(done - beforeJags)

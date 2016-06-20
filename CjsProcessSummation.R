@@ -26,7 +26,7 @@ model{
   
   for(b in 1:7){
     for(r in 1:nRivers){
-        phiBeta[b,r,g]~dnorm(0,0.667)
+        phiBeta[b,r]~dnorm(0,0.667)
       }
     }
   
