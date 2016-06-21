@@ -15,17 +15,23 @@ jagsData <- createJagsData(data.frame(coreData))
 
 coreData<-data.table(coreData)
 
-# tempData<-tbl(conDplyr,"data_hourly_temperature") %>%
-#   # filter(river=="wb obear") %>%
-#   collect() %>%
-#   data.table() %>%
-load("C:/Users/Evan/Desktop/Conte/perform/data/wbTemps.rData")
-tempData<-temp %>%
+tempData<-tbl(conDplyr,"data_hourly_temperature") %>%
+  # filter(river=="wb obear") %>%
+  collect() %>%
+  data.table() %>%
   .[datetime>=min(coreData$detectionDate)&
-    datetime<=max(coreData$detectionDate)] %>%
+      datetime<=max(coreData$detectionDate)] %>%
   .[,.(temperature=max(temperature)),by=.(date=as.Date(datetime),
                                           river)] %>%
   setkey(river,date)
+# 
+# load("C:/Users/Evan/Desktop/Conte/perform/data/wbTemps.rData")
+# tempData<-temp %>%
+#   .[datetime>=min(coreData$detectionDate)&
+#     datetime<=max(coreData$detectionDate)] %>%
+#   .[,.(temperature=max(temperature)),by=.(date=as.Date(datetime),
+#                                           river)] %>%
+#   setkey(river,date)
 
 if(exists("temp")){rm(temp)}
 time<-tempData[river=="west brook",date] 
