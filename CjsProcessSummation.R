@@ -69,6 +69,7 @@ model{
         logitPhi[t,r,g]<-phiBeta[1,r,g]+
           phiBeta[2,r,g]*flowDATA[t,r]+phiBeta[3,r,g]*flowDATA[t,r]^2+
           phiBeta[4,r,g]*tempDATA[t,r]
+        #+phiBeta[5,r,g]*tempDATA[t,r]^2
         phi[t,r,g]<-1/(1+exp(-logitPhi[t,r,g]))
       }
     }

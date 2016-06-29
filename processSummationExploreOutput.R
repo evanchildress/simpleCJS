@@ -1,8 +1,8 @@
-out<-readRDS("processSummationOut.rds")
+#out<-readRDS("processSummationOut.rds")
 
 phi<-out$mean$phiBeta
 
-#flowData<-apply(flowData,2,scale2)
+flowData<-apply(flowData,2,scale2)
 
 flowRange<-apply(flowData,2,range)
 tempRange<-apply(tempData,2,range)
@@ -43,9 +43,12 @@ for(g in 1:2){
 survFlow<-survTemp<-surv<-array(NA,dim=c(dim(flowData),2))
 for(g in 1:2){
   for(r in 1:4){
-    survFlow[,r,g]<-phi[1,r,g]+phi[2,r,g]*flowData[,r]+phi[3,r,g]*flowData[,r]^2
-    survTemp[,r,g]<-phi[1,r,g]+phi[4,r,g]*tempData[,r]
-    surv[,r,g]<-phi[1,r,g]+phi[2,r,g]*flowData[,r]+phi[3,r,g]*flowData[,r]^2+phi[4,r,g]*tempData[,r]#+
+    survFlow[,r,g]<-phi[1,r,g]+phi[2,r,g]*flowData[,r]+phi[3,r,g]*flowData[,r]^2+
+      phi[4,r,g]*mean(tempData[,r])+phi[5,r,g]*mean(tempData[,r])^2
+    survTemp[,r,g]<-phi[1,r,g]+phi[4,r,g]*tempData[,r]+phi[5,r,g]*tempData[,r]^2+
+      phi[2,r,g]*mean(flowData[,r])+phi[3,r,g]*mean(flowData[,r])^2
+    surv[,r,g]<-phi[1,r,g]+phi[2,r,g]*flowData[,r]+phi[3,r,g]*flowData[,r]^2+phi[4,r,g]*tempData[,r]+
+      phi[5,r,g]*tempData[,r]^2
       #phi[5,r,g]*flowData[,r]*tempData[,r]
   }
 }

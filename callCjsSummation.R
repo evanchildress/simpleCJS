@@ -64,24 +64,24 @@ flowData<-tbl(conDplyr,"data_daily_discharge") %>%
   melt(id.vars=c("date","river")) %>%
   acast(date~river)
 
-flowData<-tbl(conDplyr,"data_flow_extension") %>%
-  collect() %>%
-  data.table() %>%
-  .[date>=min(coreData$detectionDate)&
-      date<=max(coreData$detectionDate)] %>%
-  .[,discharge:=log(qPredicted+0.74)] %>%
-  .[,.(date=as.Date(date),river,discharge)]
-
-flowData<-rbind(flowData,flowData,flowData,flowData) %>%
-  .[,river:=rep(c("west brook","wb jimmy","wb mitchell","wb obear"),each=nrow(flowData))] %>%
-  .[,river:=as.numeric(factor(river,
-                              levels=c("west brook",
-                                       "wb jimmy",
-                                       "wb mitchell",
-                                       "wb obear"),
-                              ordered=T))] %>%
-  melt(id.vars=c("date","river")) %>%
-  acast(date~river)
+# flowData<-tbl(conDplyr,"data_flow_extension") %>%
+#   collect() %>%
+#   data.table() %>%
+#   .[date>=min(coreData$detectionDate)&
+#       date<=max(coreData$detectionDate)] %>%
+#   .[,discharge:=log(qPredicted+0.74)] %>%
+#   .[,.(date=as.Date(date),river,discharge)]
+# 
+# flowData<-rbind(flowData,flowData,flowData,flowData) %>%
+#   .[,river:=rep(c("west brook","wb jimmy","wb mitchell","wb obear"),each=nrow(flowData))] %>%
+#   .[,river:=as.numeric(factor(river,
+#                               levels=c("west brook",
+#                                        "wb jimmy",
+#                                        "wb mitchell",
+#                                        "wb obear"),
+#                               ordered=T))] %>%
+#   melt(id.vars=c("date","river")) %>%
+#   acast(date~river)
 
 
 tempData<-tbl(conDplyr,"data_daily_temperature") %>%
@@ -159,8 +159,8 @@ inits<- function(){
 
 # MCMC settings
 na <- 500
-nb <- 10000
-ni <- 13000
+nb <- 20000
+ni <- 23000
 nt <- 3
 nc <- 3
 
