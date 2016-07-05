@@ -6,7 +6,7 @@ library(jagsUI)
 coreData<-createCoreData(sampleType="electrofishing") %>% 
   addTagProperties() %>%
   dplyr::filter(species=="bkt") %>%
-  createCmrData() %>%
+  createCmrData(dateStart = as.POSIXct("2002-01-01"),censorDead=T) %>%
   fillSizeLocation() %>%
   addSampleProperties() %>%
   addEnvironmental(sampleFlow=T) %>%
@@ -18,7 +18,7 @@ coreData<-data.table(coreData)
 
 tempData<-tbl(conDplyr,"data_hourly_temperature") %>%
   # filter(river=="wb obear") %>%
-  collect() %>%
+  collect(n=Inf) %>%
   data.table() %>%
   .[datetime>=min(coreData$detectionDate)&
       datetime<=max(coreData$detectionDate)] %>%
@@ -49,7 +49,7 @@ time<-tempData[river=="west brook",date]
 coreData[,time:=which(as.Date(detectionDate)==time),by=detectionDate]
 
 flowData<-tbl(conDplyr,"data_daily_discharge") %>%
-  collect() %>%
+  collect(n=Inf) %>%
   data.table() %>%
   .[date>=as.Date(min(coreData$detectionDate))&
       date<=as.Date(max(coreData$detectionDate))] %>%
@@ -65,7 +65,7 @@ flowData<-tbl(conDplyr,"data_daily_discharge") %>%
   acast(date~river)
 
 # flowData<-tbl(conDplyr,"data_flow_extension") %>%
-#   collect() %>%
+#   collect(n=Inf) %>%
 #   data.table() %>%
 #   .[date>=min(coreData$detectionDate)&
 #       date<=max(coreData$detectionDate)] %>%
@@ -83,14 +83,14 @@ flowData<-tbl(conDplyr,"data_daily_discharge") %>%
 #   melt(id.vars=c("date","river")) %>%
 #   acast(date~river)
 
-
-tempData<-tbl(conDplyr,"data_daily_temperature") %>%
-  # filter(river=="wb obear") %>%
-  collect() %>%
-  data.table() %>%
-  .[date>=min(coreData$detectionDate)&
-    date<=max(coreData$detectionDate)] %>%
-  .[,.(date=as.Date(date),river,temperature=daily_max_temp)]
+# 
+# tempData<-tbl(conDplyr,"data_daily_temperature") %>%
+#   # filter(river=="wb obear") %>%
+#   collect(n=Inf) %>%
+#   data.table() %>%
+#   .[date>=min(coreData$detectionDate)&
+#     date<=max(coreData$detectionDate)] %>%
+#   .[,.(date=as.Date(date),river,temperature=daily_max_temp)]
 
 tempData<-tempData  %>%
   .[,.(date,river,temperature)] %>%
@@ -108,9 +108,11 @@ scale2<-function(x){
 }
 
 coreData[,nTimes:=c(NA,diff(time)+1),by=tag]
+coreData[,flowForP:=scale(log(flowForP+0.08))[,1],by=river]
+
 
 jagsData$stageDATA<-as.numeric(coreData$ageInSamples>3)+1
-jagsData$flowForP<-scale(coreData$flowForP)[,1]
+jagsData$flowForP<-coreData$flowForP
 jagsData$z[jagsData$z==2]<-0
 jagsData$lengthDATA<-coreData %>% 
                       group_by(river) %>%
@@ -118,7 +120,7 @@ jagsData$lengthDATA<-coreData %>%
                       ungroup() %>%
                       data.table() %>%
                       .[,length]
-jagsData$tempDATA<-tempData
+jagsData$tempDATA<-apply(tempData,2,scale2)
 jagsData$flowDATA<-apply(flowData,2,scale2)
 jagsData$time<-coreData$time
 jagsData$nTimes<-length(time)
@@ -126,12 +128,12 @@ jagsData$nTimesByRow<-coreData$nTimes
 jagsData$sample<-coreData$sampleIndex
 jagsData$nSamples<-max(coreData$sampleIndex)
 
-timesByRow<-array(NA,dim=c(nrow(coreData),max(coreData$nTimes,na.rm=T)))
-for(i in 1:nrow(coreData)){
-  if(is.na(coreData$nTimes[i])){next}
-  timesByRow[i,1:coreData$nTimes[i]]<-coreData$time[i-1]:coreData$time[i]
-}
-jagsData$timesByRow<-timesByRow
+# timesByRow<-array(NA,dim=c(nrow(coreData),max(coreData$nTimes,na.rm=T)))
+# for(i in 1:nrow(coreData)){
+#   if(is.na(coreData$nTimes[i])){next}
+#   timesByRow[i,1:coreData$nTimes[i]]<-coreData$time[i-1]:coreData$time[i]
+# }
+# jagsData$timesByRow<-timesByRow
 
 stds<-list(length=coreData %>% 
              group_by(river) %>%
@@ -159,19 +161,20 @@ inits<- function(){
 
 # MCMC settings
 na <- 500
-nb <- 20000
-ni <- 23000
+nb <- 5000
+ni <- 8000
 nt <- 3
 nc <- 3
 
-varsToMonitor<-c('pBeta','phiBeta')
+varsToMonitor<-c('pBeta','phiBeta','phiSigma','phiEps')
 
 gc()
+Sys.time()
 
   out <- jags(
     data=jagsData,
     inits=inits,
-    model = "CjsProcessSummation.R",
+    model = "CjsProcessSummationError.R",
     parameters.to.save = varsToMonitor,
     n.adapt=na,
     n.chains=nc,
@@ -179,6 +182,6 @@ gc()
     n.thin = nt,
     n.burnin=nb,
     parallel=T,
-    codaOnly=c("pEps","phiEps"))
+    codaOnly=c("pEps"))
 
 saveRDS(out,"processSummationOut.rds")
